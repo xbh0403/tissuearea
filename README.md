@@ -58,19 +58,26 @@ from tissuearea import tissue_area_for_slide, MaskingConfig
 out = tissue_area_for_slide("slide.svs")
 print(out["whole_mm2"], out["largest_cc_mm2"], out["n_sections"])
 
-# Recommended for faint fresh-frozen tissue: disable the gray filter
-out = tissue_area_for_slide("slide.svs", MaskingConfig(filter_grays=False))
-print(out["largest_cc_mm2"])
+# Recommended for faint fresh-frozen tissue: disable the gray filter,
+# and optionally save an annotated thumbnail (regions outlined + area-labelled).
+out = tissue_area_for_slide(
+    "slide.svs",
+    MaskingConfig(filter_grays=False),
+    labeled_output_path="slide_regions.png",
+)
+print(out["largest_cc_mm2"], out["section_areas_mm2"])  # largest, and all regions
 ```
 
 Work directly from a thumbnail you already have:
 
 ```python
 import numpy as np
-from tissuearea import build_tissue_mask, area_from_mask, MaskingConfig
+from tissuearea import build_tissue_mask, area_from_mask, region_areas, draw_region_labels
 
-mask = build_tissue_mask(thumbnail_rgb, MaskingConfig(filter_grays=False))
+mask = build_tissue_mask(thumbnail_rgb)
 area = area_from_mask(mask, width=W, height=H, mpp_x=0.2628, mpp_y=0.2628)
+regions = region_areas(mask, W, H, 0.2628, 0.2628)   # [{rank, area_mm2, centroid_xy, ...}, ...]
+draw_region_labels(thumbnail_rgb, mask, W, H, 0.2628, 0.2628, output_path="regions.png")
 ```
 
 ### Command line
@@ -79,11 +86,29 @@ area = area_from_mask(mask, width=W, height=H, mpp_x=0.2628, mpp_y=0.2628)
 tissuearea slide.svs
 tissuearea slides/*.svs --no-grays --mode largest_cc --csv areas.csv
 tissuearea slide.svs --no-grays --json out.json
+# also save an annotated thumbnail per slide (regions outlined + area-labelled):
+tissuearea slides/*.svs --no-grays --csv areas.csv --save-labeled labels/
 ```
 
 ```
-M1011007  largest_cc=36.21 mm²  (whole=71.69, n_sections=2)
+M1011007  largest_cc=37.25 mm²  (whole=74.40, n_sections=6)
 ```
+
+**`--csv` columns** — one row per slide:
+
+| column | meaning |
+|---|---|
+| `whole_mm2` | total tissue area (all regions) |
+| `largest_cc_mm2` | largest single region (one section) |
+| `section_areas_mm2` | **every** region's area, mm², largest-first, `;`-separated |
+| `top2_sum_mm2`, `n_sections`, `mask_fraction` | summary |
+| `width`, `height`, `mpp_x`, `mpp_y`, `mask_scale` | slide metadata |
+
+`--save-labeled DIR` writes `{slide_id}_regions.png` per slide — each connected
+tissue region outlined and labelled with its area (`#1` = largest), plus a header
+showing the region count and total/largest area. Use `--label-min-area MM2` to
+suppress text on tiny specks (contours are still drawn). The full JSON (`--json`)
+additionally carries the raw `section_areas_mm2` list per slide.
 
 ## Public API
 
@@ -93,6 +118,8 @@ M1011007  largest_cc=36.21 mm²  (whole=71.69, n_sections=2)
 | `tissue_area_from_thumbnail(thumb, W, H, mpp_x, mpp_y, config=None)` | Segment a thumbnail and compute areas. |
 | `build_tissue_mask(thumb, config=None)` | RGB thumbnail → boolean tissue mask (= the production segmentation). |
 | `area_from_mask(mask, W, H, mpp_x, mpp_y)` | Boolean mask → area dict (whole / largest_cc / top2 / sections). |
+| `region_areas(mask, W, H, mpp_x, mpp_y)` | Per-region list (rank, area_mm2, centroid, bbox), largest-first. |
+| `draw_region_labels(thumb, mask, W, H, mpp_x, mpp_y, output_path=None, min_area_mm2=0.0)` | Annotated thumbnail: each region outlined + area-labelled. |
 | `resolve_mpp_xy(props, fallback_mpp=None)` | Resolve `(mpp_x, mpp_y)` from OpenSlide properties. |
 | `visualize_mask(thumb, mask, output_path=None)` | Black out non-tissue for QA. |
 | `SlideReader(path)` | Minimal read-only OpenSlide wrapper (`dimensions`, `mpp`, `properties`, `get_thumbnail`). |

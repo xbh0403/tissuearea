@@ -15,11 +15,13 @@ Quick start
 from .area import (
     area_from_mask,
     mask_from_thumbnail,
+    region_areas,
     resolve_mpp_xy,
     tissue_area_for_slide,
     tissue_area_from_thumbnail,
 )
 from .config import MaskingConfig
+from .draw import draw_region_labels
 from .masking import (
     build_tissue_mask,
     combine_masks,
@@ -37,12 +39,15 @@ __version__ = "0.1.0"
 __all__ = [
     # area
     "area_from_mask",
+    "region_areas",
     "tissue_area_from_thumbnail",
     "tissue_area_for_slide",
     "mask_from_thumbnail",
     "resolve_mpp_xy",
     # config
     "MaskingConfig",
+    # visualization
+    "draw_region_labels",
     # masking
     "build_tissue_mask",
     "otsu_mask",
