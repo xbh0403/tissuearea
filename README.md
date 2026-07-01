@@ -34,20 +34,57 @@ Connected components use 8-connectivity. MPP resolution order:
 
 ## Install
 
-Requires the **OpenSlide** C library on your system (`openslide-python` is only
-the Python binding):
+### 1. Create & activate a conda env
 
 ```bash
-# system library (one of):
-conda install -c conda-forge openslide      # conda
-sudo apt-get install openslide-tools          # Debian/Ubuntu
-# or: pip install openslide-bin               # bundled binaries (no system install)
+conda create -n tissuearea python=3.12 -y
+conda activate tissuearea
+```
+
+### 2. pip-install OpenSlide binaries + the package
+
+```bash
+# OpenSlide C library via pip — no system/conda install needed:
+pip install openslide-bin
 
 pip install -e .            # from this repo
 pip install -e ".[dev]"     # with pytest
 ```
 
+`openslide-python` and the other dependencies are pulled in automatically;
+`openslide-bin` supplies the native OpenSlide library it binds to.
+
 ## Usage
+
+### Command line
+
+```bash
+tissuearea slide.svs
+tissuearea slides/*.svs --no-grays --mode largest_cc --csv areas.csv
+tissuearea slide.svs --no-grays --json out.json
+# also save an annotated thumbnail per slide (regions outlined + area-labelled):
+tissuearea slides/*.svs --no-grays --csv areas.csv --save-labeled labels/
+```
+
+```
+M1011007  largest_cc=37.25 mm²  (whole=74.40, n_sections=6)
+```
+
+**`--csv` columns** — one row per slide:
+
+| column | meaning |
+|---|---|
+| `whole_mm2` | total tissue area (all regions) |
+| `largest_cc_mm2` | largest single region (one section) |
+| `section_areas_mm2` | **every** region's area, mm², largest-first, `;`-separated |
+| `top2_sum_mm2`, `n_sections`, `mask_fraction` | summary |
+| `width`, `height`, `mpp_x`, `mpp_y`, `mask_scale` | slide metadata |
+
+`--save-labeled DIR` writes `{slide_id}_regions.png` per slide — each connected
+tissue region outlined and labelled with its area (`#1` = largest), plus a header
+showing the region count and total/largest area. Use `--label-min-area MM2` to
+suppress text on tiny specks (contours are still drawn). The full JSON (`--json`)
+additionally carries the raw `section_areas_mm2` list per slide.
 
 ### Python
 
@@ -79,36 +116,6 @@ area = area_from_mask(mask, width=W, height=H, mpp_x=0.2628, mpp_y=0.2628)
 regions = region_areas(mask, W, H, 0.2628, 0.2628)   # [{rank, area_mm2, centroid_xy, ...}, ...]
 draw_region_labels(thumbnail_rgb, mask, W, H, 0.2628, 0.2628, output_path="regions.png")
 ```
-
-### Command line
-
-```bash
-tissuearea slide.svs
-tissuearea slides/*.svs --no-grays --mode largest_cc --csv areas.csv
-tissuearea slide.svs --no-grays --json out.json
-# also save an annotated thumbnail per slide (regions outlined + area-labelled):
-tissuearea slides/*.svs --no-grays --csv areas.csv --save-labeled labels/
-```
-
-```
-M1011007  largest_cc=37.25 mm²  (whole=74.40, n_sections=6)
-```
-
-**`--csv` columns** — one row per slide:
-
-| column | meaning |
-|---|---|
-| `whole_mm2` | total tissue area (all regions) |
-| `largest_cc_mm2` | largest single region (one section) |
-| `section_areas_mm2` | **every** region's area, mm², largest-first, `;`-separated |
-| `top2_sum_mm2`, `n_sections`, `mask_fraction` | summary |
-| `width`, `height`, `mpp_x`, `mpp_y`, `mask_scale` | slide metadata |
-
-`--save-labeled DIR` writes `{slide_id}_regions.png` per slide — each connected
-tissue region outlined and labelled with its area (`#1` = largest), plus a header
-showing the region count and total/largest area. Use `--label-min-area MM2` to
-suppress text on tiny specks (contours are still drawn). The full JSON (`--json`)
-additionally carries the raw `section_areas_mm2` list per slide.
 
 ## Public API
 
