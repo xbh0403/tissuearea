@@ -176,18 +176,21 @@ def tissue_area_for_slide(
     *,
     labeled_output_path: Optional[Union[str, Path]] = None,
     label_min_area_mm2: float = 0.0,
+    mpp_fallback: Optional[float] = None,
 ) -> Dict[str, object]:
     """Open a slide (read-only) and compute its tissue-area candidates.
 
     Adds ``slide_id``, ``width``, ``height``, ``mpp_x``, ``mpp_y``, and
     ``mask_scale`` to the result returned by :func:`tissue_area_from_thumbnail`.
     When ``labeled_output_path`` is given, also save an annotated thumbnail with
-    every region outlined and area-labelled.
+    every region outlined and area-labelled. ``mpp_fallback`` (microns/pixel) is
+    used when the slide itself carries no MPP or objective-power metadata.
     """
     cfg = config if config is not None else MaskingConfig()
     with SlideReader(path) as reader:
         width, height = reader.dimensions
-        mpp_x, mpp_y = resolve_mpp_xy(reader.properties, fallback_mpp=reader.mpp)
+        fallback = mpp_fallback if (mpp_fallback and mpp_fallback > 0) else reader.mpp
+        mpp_x, mpp_y = resolve_mpp_xy(reader.properties, fallback_mpp=fallback)
         thumbnail = reader.get_thumbnail_array(cfg.mask_scale)
         out = tissue_area_from_thumbnail(
             thumbnail,

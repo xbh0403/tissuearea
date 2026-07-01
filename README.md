@@ -34,68 +34,97 @@ Connected components use 8-connectivity. MPP resolution order:
 
 ## Install
 
-### 1. Create & activate a conda env
+> The repo is **private** — cloning/installing needs GitHub access (an SSH key,
+> or an HTTPS token).
+
+### Quickest: one command
+
+```bash
+git clone git@github.com:xbh0403/tissuearea.git
+cd tissuearea
+conda env create -f environment.yml   # makes env 'tissuearea' with everything
+conda activate tissuearea
+```
+
+### Or step by step
 
 ```bash
 conda create -n tissuearea python=3.12 -y
 conda activate tissuearea
-```
 
-### 2. pip-install OpenSlide binaries + the package
-
-```bash
-# OpenSlide C library via pip — no system/conda install needed:
+# OpenSlide native library via pip — no system/conda install needed:
 pip install openslide-bin
+# (fallback if there's no wheel for your platform:
+#  conda install -c conda-forge openslide)
 
-pip install -e .            # from this repo
-pip install -e ".[dev]"     # with pytest
+# install the package (from a clone):
+git clone git@github.com:xbh0403/tissuearea.git && cd tissuearea
+pip install -e .          # add ".[dev]" for the test suite
+# — or without cloning —
+pip install "git+ssh://git@github.com/xbh0403/tissuearea.git"
 ```
 
-`openslide-python` and the other dependencies are pulled in automatically;
-`openslide-bin` supplies the native OpenSlide library it binds to.
+`openslide-python`, `tqdm`, and the other dependencies are pulled in
+automatically; `openslide-bin` supplies the native OpenSlide library they bind to.
 
 ## Usage
 
 ### Command line
 
 ```bash
-# input can be a single slide OR a folder of slides
-tissuearea -i slide.svs                       # -> ./tissuearea_output/
-tissuearea -i slides/ -o results/
+# input can be a single slide OR a folder (searched recursively);
+# -i is optional — the input can be the first positional argument.
+tissuearea slides/                             # -> ./tissuearea_output/
+tissuearea -i slide.svs -o results/
 tissuearea -i slides/ -o results/ -t ffpe      # FFPE cohort (gray filter on)
-tissuearea -i slides/ -o results/ --skip-png   # no thumbnails
-tissuearea -i slides/ -o results/ --json       # also write area.json
+tissuearea -i slides/ -o results/ --jobs 8     # process 8 slides in parallel
+tissuearea -i slides/ -o results/ --resume     # continue an interrupted run
 ```
 
-On start, the resolved configuration is printed and saved to
-`<output>/run_config.txt`. Everything lands in `-o` (default
+Folders are searched **recursively** (typical `archive/{case}/{slide}.svs`
+layouts just work; pass `--no-recursive` to stay top-level). On start the
+resolved configuration is printed and saved to `<output>/run_config.txt`, then a
+progress bar tracks the batch. Everything lands in `-o` (default
 `./tissuearea_output`):
 
 | flag | default | meaning |
 |---|---|---|
-| `-i, --input` | *(required)* | a single slide file **or** a folder of slides |
-| `-o, --output` | `./tissuearea_output` | output dir: `area.csv`, `thumbnails/`, `run_config.txt` |
+| `-i, --input` (or positional) | *(required)* | a slide file **or** a folder of slides |
+| `-o, --output` | `./tissuearea_output` | output dir (`area.csv`, `thumbnails/`, `run_config.txt`) |
 | `-t, --type` | `ff` | tissue prep: `ff` fresh-frozen (gray filter **off**) or `ffpe` (**on**) |
+| `-j, --jobs N` | `1` | process N slides in parallel |
+| `--resume` | off | skip slides already in `area.csv` (continue a run) |
+| `--no-recursive` | off | don't search subfolders |
 | `--skip-png` | off | don't save labelled thumbnails (saved by default) |
-| `--mode` | `largest_cc` | headline area printed to the console (`whole`/`largest_cc`/`top2`) |
+| `--mpp MPP` | — | fallback microns/pixel for slides missing MPP metadata |
+| `--mode` | `largest_cc` | which area becomes the headline `tissue_area_mm2` |
 | `--scale` | `32` | thumbnail downsampling factor |
 | `--label-min-area MM2` | `0` | only label regions ≥ this size in thumbnails |
 | `--json` | off | also write `area.json` (full records) |
-| `--quiet` | off | suppress the per-slide progress lines |
+| `--quiet` | off | minimal output (no banner / progress bar) |
 
 Frozen tissue is often near-neutral, so the `ff` preset turns the gray filter off
 (it would otherwise discard faint tissue, sometimes yielding an empty mask); FFPE
 is well-stained, so `ffpe` keeps it on. Pick the one matching your cohort.
 
+A crash-safe batch: `area.csv` is streamed row-by-row, so `--resume` picks up
+where an interrupted run stopped. Any slide that fails is recorded in
+`<output>/failures.csv` and the process exits non-zero (1 = some failed, 2 = none
+succeeded), so pipelines can tell.
+
 **`area.csv`** — one row per slide:
 
 | column | meaning |
 |---|---|
+| `tissue_area_mm2` | **the headline number** (equals the `--mode` area; `largest_cc` by default) |
+| `path` | absolute path to the source slide (traceable/joinable) |
 | `whole_mm2` | total tissue area (all regions) |
 | `largest_cc_mm2` | largest single region (one section) |
 | `section_areas_mm2` | **every** region's area, mm², largest-first, `;`-separated |
 | `top2_sum_mm2`, `n_sections`, `mask_fraction` | summary |
 | `width`, `height`, `mpp_x`, `mpp_y`, `mask_scale` | slide metadata |
+
+If you just want one number per slide, read **`tissue_area_mm2`**.
 
 **`thumbnails/{slide_id}_regions.png`** — each region outlined and labelled with
 its area (`#1` = largest), plus a header (region count, total, largest).

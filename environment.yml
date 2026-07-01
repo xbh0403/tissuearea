@@ -1,0 +1,11 @@
+name: tissuearea
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      # native OpenSlide library (no system/conda install needed)
+      - openslide-bin
+      # the package itself (editable) + all Python deps from pyproject.toml
+      - -e .

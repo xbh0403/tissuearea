@@ -31,6 +31,7 @@ dependencies = [
     "openslide-python>=1.2",
     "scikit-image>=0.19",
     "pillow>=8.0",
+    "tqdm>=4.0",
 ]
 
 [project.optional-dependencies]
