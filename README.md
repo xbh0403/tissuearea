@@ -59,25 +59,35 @@ pip install -e ".[dev]"     # with pytest
 ### Command line
 
 ```bash
-tissuearea slide.svs                                   # fresh-frozen (default)
-tissuearea slides/*.svs --mode largest_cc --csv areas.csv
-tissuearea slides/*.svs --type ffpe --csv areas.csv    # FFPE cohort
-tissuearea slide.svs --json out.json
-# also save an annotated thumbnail per slide (regions outlined + area-labelled):
-tissuearea slides/*.svs --csv areas.csv --save-labeled labels/
+# input can be a single slide OR a folder of slides
+tissuearea -i slide.svs                       # -> ./tissuearea_output/
+tissuearea -i slides/ -o results/
+tissuearea -i slides/ -o results/ -t ffpe      # FFPE cohort (gray filter on)
+tissuearea -i slides/ -o results/ --skip-png   # no thumbnails
+tissuearea -i slides/ -o results/ --json       # also write area.json
 ```
 
-```
-M1011007  largest_cc=37.25 mm²  (whole=74.40, n_sections=6)
-```
+On start, the resolved configuration is printed and saved to
+`<output>/run_config.txt`. Everything lands in `-o` (default
+`./tissuearea_output`):
 
-**`--type`** picks the segmentation tuned for the tissue preparation:
-`ff` = fresh-frozen (**default** — gray filter off, keeps pale frozen tissue) or
-`ffpe` = FFPE (gray filter on). Frozen tissue is often near-neutral, so the gray
-filter would discard it (sometimes yielding an empty mask); FFPE is well-stained,
-so the filter is kept on. Set the one matching your cohort.
+| flag | default | meaning |
+|---|---|---|
+| `-i, --input` | *(required)* | a single slide file **or** a folder of slides |
+| `-o, --output` | `./tissuearea_output` | output dir: `area.csv`, `thumbnails/`, `run_config.txt` |
+| `-t, --type` | `ff` | tissue prep: `ff` fresh-frozen (gray filter **off**) or `ffpe` (**on**) |
+| `--skip-png` | off | don't save labelled thumbnails (saved by default) |
+| `--mode` | `largest_cc` | headline area printed to the console (`whole`/`largest_cc`/`top2`) |
+| `--scale` | `32` | thumbnail downsampling factor |
+| `--label-min-area MM2` | `0` | only label regions ≥ this size in thumbnails |
+| `--json` | off | also write `area.json` (full records) |
+| `--quiet` | off | suppress the per-slide progress lines |
 
-**`--csv` columns** — one row per slide:
+Frozen tissue is often near-neutral, so the `ff` preset turns the gray filter off
+(it would otherwise discard faint tissue, sometimes yielding an empty mask); FFPE
+is well-stained, so `ffpe` keeps it on. Pick the one matching your cohort.
+
+**`area.csv`** — one row per slide:
 
 | column | meaning |
 |---|---|
@@ -87,11 +97,10 @@ so the filter is kept on. Set the one matching your cohort.
 | `top2_sum_mm2`, `n_sections`, `mask_fraction` | summary |
 | `width`, `height`, `mpp_x`, `mpp_y`, `mask_scale` | slide metadata |
 
-`--save-labeled DIR` writes `{slide_id}_regions.png` per slide — each connected
-tissue region outlined and labelled with its area (`#1` = largest), plus a header
-showing the region count and total/largest area. Use `--label-min-area MM2` to
-suppress text on tiny specks (contours are still drawn). The full JSON (`--json`)
-additionally carries the raw `section_areas_mm2` list per slide.
+**`thumbnails/{slide_id}_regions.png`** — each region outlined and labelled with
+its area (`#1` = largest), plus a header (region count, total, largest).
+`--label-min-area` suppresses text on tiny specks; `area.json` (`--json`) carries
+the raw `section_areas_mm2` list.
 
 ### Python
 
