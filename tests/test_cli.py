@@ -9,15 +9,20 @@ def test_parser_defaults():
     args = _build_parser().parse_args(["a.svs", "b.svs"])
     assert args.slides == ["a.svs", "b.svs"]
     assert args.mode == "largest_cc"
-    assert args.no_grays is False
+    assert args.tissue_type == "ff"  # fresh-frozen (gray filter off) is the default
     assert args.scale is None
 
 
 def test_parser_flags():
-    args = _build_parser().parse_args(["s.svs", "--no-grays", "--scale", "16", "--mode", "whole"])
-    assert args.no_grays is True
+    args = _build_parser().parse_args(["s.svs", "--type", "ffpe", "--scale", "16", "--mode", "whole"])
+    assert args.tissue_type == "ffpe"
     assert args.scale == 16
     assert args.mode == "whole"
+
+
+def test_parser_rejects_unknown_type():
+    with pytest.raises(SystemExit):
+        _build_parser().parse_args(["s.svs", "--type", "bogus"])
 
 
 def test_parser_labeling_flags():

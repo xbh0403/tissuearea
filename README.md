@@ -59,16 +59,23 @@ pip install -e ".[dev]"     # with pytest
 ### Command line
 
 ```bash
-tissuearea slide.svs
-tissuearea slides/*.svs --no-grays --mode largest_cc --csv areas.csv
-tissuearea slide.svs --no-grays --json out.json
+tissuearea slide.svs                                   # fresh-frozen (default)
+tissuearea slides/*.svs --mode largest_cc --csv areas.csv
+tissuearea slides/*.svs --type ffpe --csv areas.csv    # FFPE cohort
+tissuearea slide.svs --json out.json
 # also save an annotated thumbnail per slide (regions outlined + area-labelled):
-tissuearea slides/*.svs --no-grays --csv areas.csv --save-labeled labels/
+tissuearea slides/*.svs --csv areas.csv --save-labeled labels/
 ```
 
 ```
 M1011007  largest_cc=37.25 mm²  (whole=74.40, n_sections=6)
 ```
+
+**`--type`** picks the segmentation tuned for the tissue preparation:
+`ff` = fresh-frozen (**default** — gray filter off, keeps pale frozen tissue) or
+`ffpe` = FFPE (gray filter on). Frozen tissue is often near-neutral, so the gray
+filter would discard it (sometimes yielding an empty mask); FFPE is well-stained,
+so the filter is kept on. Set the one matching your cohort.
 
 **`--csv` columns** — one row per slide:
 
@@ -89,20 +96,14 @@ additionally carries the raw `section_areas_mm2` list per slide.
 ### Python
 
 ```python
-from tissuearea import tissue_area_for_slide, MaskingConfig
+from tissuearea import tissue_area_for_slide, masking_config_for_type
 
-# Default (production) segmentation
-out = tissue_area_for_slide("slide.svs")
-print(out["whole_mm2"], out["largest_cc_mm2"], out["n_sections"])
-
-# Recommended for faint fresh-frozen tissue: disable the gray filter,
-# and optionally save an annotated thumbnail (regions outlined + area-labelled).
-out = tissue_area_for_slide(
-    "slide.svs",
-    MaskingConfig(filter_grays=False),
-    labeled_output_path="slide_regions.png",
-)
+# Pick the segmentation for your tissue type: "ff" (fresh-frozen) or "ffpe".
+cfg = masking_config_for_type("ff")
+out = tissue_area_for_slide("slide.svs", cfg, labeled_output_path="slide_regions.png")
 print(out["largest_cc_mm2"], out["section_areas_mm2"])  # largest, and all regions
+
+# Bare MaskingConfig() is the production default (gray filter ON = FFPE-style).
 ```
 
 Work directly from a thumbnail you already have:
@@ -130,7 +131,8 @@ draw_region_labels(thumbnail_rgb, mask, W, H, 0.2628, 0.2628, output_path="regio
 | `resolve_mpp_xy(props, fallback_mpp=None)` | Resolve `(mpp_x, mpp_y)` from OpenSlide properties. |
 | `visualize_mask(thumb, mask, output_path=None)` | Black out non-tissue for QA. |
 | `SlideReader(path)` | Minimal read-only OpenSlide wrapper (`dimensions`, `mpp`, `properties`, `get_thumbnail`). |
-| `MaskingConfig` | Segmentation parameters (the defaults are read-only; pass overrides). |
+| `MaskingConfig` | Segmentation parameters (the defaults are production; pass overrides). |
+| `masking_config_for_type("ff"\|"ffpe", **overrides)` | Optimal `MaskingConfig` for a tissue type (what the CLI `--type` uses). |
 
 ## Choosing whole-slide vs. largest-section area
 
@@ -148,10 +150,11 @@ Two practical takeaways:
 
 - **Use `largest_cc_mm2`** when the reference measures one tissue section; a slide
   with two sections otherwise over-predicts ~2× on `whole_mm2`.
-- **Disable the gray filter** (`MaskingConfig(filter_grays=False)`) for faint /
-  near-neutral fresh-frozen tissue — the default gray filter discards it and can
-  even yield empty masks. Higher mask resolution (smaller `mask_scale`) is *not*
-  the lever; the gray filter is.
+- **Match the tissue type** (`--type ff` / `masking_config_for_type("ff")`) for
+  faint, near-neutral fresh-frozen tissue — the gray filter otherwise discards it
+  and can even yield empty masks. This is baked into the `ff` preset (the CLI
+  default). FFPE (`--type ffpe`) keeps the filter on. Higher mask resolution
+  (smaller `mask_scale`) is *not* the lever; the gray filter is.
 
 ## Testing
 

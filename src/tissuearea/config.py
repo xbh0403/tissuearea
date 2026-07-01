@@ -10,7 +10,7 @@ values reproduce the production EasyMSI segmentation exactly; construct a fresh
 from dataclasses import dataclass
 from typing import Tuple
 
-__all__ = ["MaskingConfig"]
+__all__ = ["MaskingConfig", "masking_config_for_type", "TISSUE_TYPES"]
 
 
 @dataclass
@@ -48,3 +48,48 @@ class MaskingConfig:
 
     # Final dilation
     dilation_kernel_size: int = 5            # 0/1 disables the final dilation
+
+
+# Canonical tissue-preparation types the software knows how to tune for.
+TISSUE_TYPES = ("ff", "ffpe")
+
+# Accepted spellings -> canonical type.
+_TISSUE_ALIASES = {
+    "ff": "ff",
+    "frozen": "ff",
+    "fresh_frozen": "ff",
+    "fresh-frozen": "ff",
+    "ffpe": "ffpe",
+    "paraffin": "ffpe",
+}
+
+# Optimal masking overrides per tissue type. Fresh-frozen tissue is often pale /
+# near-neutral, so the gray filter is turned OFF (it would discard faint tissue);
+# FFPE is well-stained, so the default gray filter is kept ON.
+_TISSUE_PRESETS = {
+    "ff": {"filter_grays": False},
+    "ffpe": {"filter_grays": True},
+}
+
+
+def masking_config_for_type(tissue_type: str = "ff", **overrides) -> MaskingConfig:
+    """Return the optimal :class:`MaskingConfig` for a tissue-preparation type.
+
+    Args:
+        tissue_type: ``"ff"`` (fresh-frozen; gray filter off) or ``"ffpe"``
+            (gray filter on). Case-insensitive; ``"frozen"``/``"paraffin"`` etc.
+            are accepted aliases.
+        **overrides: extra ``MaskingConfig`` fields applied on top of the preset
+            (e.g. ``mask_scale=16``).
+
+    Raises:
+        ValueError: if ``tissue_type`` is not recognised.
+    """
+    key = _TISSUE_ALIASES.get(str(tissue_type).strip().lower())
+    if key is None:
+        raise ValueError(
+            f"Unknown tissue_type {tissue_type!r}; choose from {TISSUE_TYPES}."
+        )
+    params = dict(_TISSUE_PRESETS[key])
+    params.update(overrides)
+    return MaskingConfig(**params)

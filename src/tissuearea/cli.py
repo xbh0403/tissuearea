@@ -17,7 +17,7 @@ from typing import List, Optional
 
 from . import __version__
 from .area import tissue_area_for_slide
-from .config import MaskingConfig
+from .config import TISSUE_TYPES, masking_config_for_type
 
 # Per-slide CSV columns. ``whole_mm2`` is the total tissue area, ``largest_cc_mm2``
 # the single largest region, and ``section_areas_mm2`` holds every region's area
@@ -57,10 +57,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Which area candidate to print as the headline value (default: largest_cc).",
     )
     p.add_argument(
-        "--no-grays",
-        action="store_true",
-        help="Disable the gray filter (filter_grays=False); recommended for faint "
-        "fresh-frozen tissue.",
+        "--type",
+        dest="tissue_type",
+        choices=list(TISSUE_TYPES),
+        default="ff",
+        help="Tissue preparation type; selects the optimal segmentation. "
+        "'ff' = fresh-frozen (default; gray filter OFF, keeps pale frozen tissue), "
+        "'ffpe' = FFPE (gray filter ON). ",
     )
     p.add_argument(
         "--scale",
@@ -98,12 +101,10 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[List[str]] = None) -> int:
     args = _build_parser().parse_args(argv)
 
-    cfg_kwargs = {}
-    if args.no_grays:
-        cfg_kwargs["filter_grays"] = False
+    overrides = {}
     if args.scale is not None:
-        cfg_kwargs["mask_scale"] = args.scale
-    config = MaskingConfig(**cfg_kwargs)
+        overrides["mask_scale"] = args.scale
+    config = masking_config_for_type(args.tissue_type, **overrides)
 
     if args.save_labeled:
         os.makedirs(args.save_labeled, exist_ok=True)

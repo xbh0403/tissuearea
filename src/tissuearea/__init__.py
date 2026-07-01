@@ -20,7 +20,7 @@ from .area import (
     tissue_area_for_slide,
     tissue_area_from_thumbnail,
 )
-from .config import MaskingConfig
+from .config import TISSUE_TYPES, MaskingConfig, masking_config_for_type
 from .draw import draw_region_labels
 from .masking import (
     build_tissue_mask,
@@ -46,6 +46,8 @@ __all__ = [
     "resolve_mpp_xy",
     # config
     "MaskingConfig",
+    "masking_config_for_type",
+    "TISSUE_TYPES",
     # visualization
     "draw_region_labels",
     # masking
