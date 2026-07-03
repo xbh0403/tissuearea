@@ -69,9 +69,9 @@ def test_draw_region_labels_draws_contour_color():
         thumb, mask, W, H, MPP, MPP,
         contour_color=(255, 0, 0), min_area_mm2=1e9, show_header=False,
     )
-    # at least one pure-red contour pixel exists
-    red = (out[:, :, 0] == 255) & (out[:, :, 1] == 0) & (out[:, :, 2] == 0)
-    assert red.any()
+    # a reddish contour pixel exists (anti-aliased, so allow edge blending)
+    reddish = (out[:, :, 0] > 140) & (out[:, :, 1] < 130) & (out[:, :, 2] < 130)
+    assert reddish.any()
 
 
 def test_draw_region_labels_empty_mask_runs():
