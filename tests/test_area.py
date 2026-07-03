@@ -108,6 +108,19 @@ def test_resolve_mpp_none_raises():
         resolve_mpp_xy({})
 
 
+def test_include_regions_matches_section_areas():
+    out = tissue_area_from_thumbnail(_synthetic_thumbnail(), W, H, MPP, MPP, include_regions=True)
+    assert "regions" in out
+    # the per-region areas mirror the flat section list (and the thumbnail #labels)
+    assert [r["area_mm2"] for r in out["regions"]] == pytest.approx(out["section_areas_mm2"])
+    assert [r["rank"] for r in out["regions"]] == list(range(1, len(out["regions"]) + 1))
+
+
+def test_regions_absent_by_default():
+    out = tissue_area_from_thumbnail(_synthetic_thumbnail(), W, H, MPP, MPP)
+    assert "regions" not in out
+
+
 def test_tissue_area_from_thumbnail_composes_mask_and_area():
     thumb = _synthetic_thumbnail()
     cfg = MaskingConfig()

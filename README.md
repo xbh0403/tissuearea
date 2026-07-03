@@ -128,8 +128,11 @@ If you just want one number per slide, read **`tissue_area_mm2`**.
 
 **`thumbnails/{slide_id}_regions.png`** — each region outlined and labelled with
 its area (`#1` = largest), plus a header (region count, total, largest).
-`--label-min-area` suppresses text on tiny specks; `area.json` (`--json`) carries
-the raw `section_areas_mm2` list.
+`--label-min-area` suppresses text on tiny specks.
+
+**`area.json`** (`--json`) — full per-slide records, each with a **`regions`**
+array that mirrors the thumbnail `#N` labels: `rank`, `area_mm2`, `centroid_xy`,
+and `bbox` per section. So every area you see drawn is saved and locatable.
 
 ### Python
 

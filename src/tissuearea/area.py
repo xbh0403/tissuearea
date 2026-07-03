@@ -145,15 +145,21 @@ def tissue_area_from_thumbnail(
     *,
     labeled_output_path: Optional[Union[str, Path]] = None,
     label_min_area_mm2: float = 0.0,
+    include_regions: bool = False,
 ) -> Dict[str, object]:
     """Segment ``thumbnail`` and return physical tissue-area candidates.
 
     If ``labeled_output_path`` is given, also render the thumbnail with each
     region outlined and area-labelled to that path (see
-    :func:`tissuearea.draw.draw_region_labels`).
+    :func:`tissuearea.draw.draw_region_labels`). If ``include_regions`` is set,
+    the result gains a ``regions`` list — the per-section geometry from
+    :func:`region_areas` (``rank``, ``area_mm2``, ``centroid_xy``, ``bbox`` …),
+    which maps 1:1 to the ``#N`` labels drawn on the thumbnail.
     """
     mask = build_tissue_mask(thumbnail, config=config)
     out = area_from_mask(mask, width, height, mpp_x, mpp_y)
+    if include_regions:
+        out["regions"] = region_areas(mask, width, height, mpp_x, mpp_y)
     if labeled_output_path is not None:
         from .draw import draw_region_labels
 
@@ -177,6 +183,7 @@ def tissue_area_for_slide(
     labeled_output_path: Optional[Union[str, Path]] = None,
     label_min_area_mm2: float = 0.0,
     mpp_fallback: Optional[float] = None,
+    include_regions: bool = False,
 ) -> Dict[str, object]:
     """Open a slide (read-only) and compute its tissue-area candidates.
 
@@ -185,6 +192,7 @@ def tissue_area_for_slide(
     When ``labeled_output_path`` is given, also save an annotated thumbnail with
     every region outlined and area-labelled. ``mpp_fallback`` (microns/pixel) is
     used when the slide itself carries no MPP or objective-power metadata.
+    ``include_regions`` adds the structured per-section ``regions`` list.
     """
     cfg = config if config is not None else MaskingConfig()
     with SlideReader(path) as reader:
@@ -201,6 +209,7 @@ def tissue_area_for_slide(
             config=cfg,
             labeled_output_path=labeled_output_path,
             label_min_area_mm2=label_min_area_mm2,
+            include_regions=include_regions,
         )
         out.update(
             slide_id=reader.slide_id,

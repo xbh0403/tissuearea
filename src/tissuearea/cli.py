@@ -220,7 +220,7 @@ def _config_report(args, slides, config, save_png, recursive, mpp, max_list=None
     return "\n".join(lines)
 
 
-def _process_slide(path, config, labeled_path, label_min_area, mpp_fallback):
+def _process_slide(path, config, labeled_path, label_min_area, mpp_fallback, include_regions=False):
     """Worker (module-level so it is picklable for --jobs)."""
     out = tissue_area_for_slide(
         path,
@@ -228,6 +228,7 @@ def _process_slide(path, config, labeled_path, label_min_area, mpp_fallback):
         labeled_output_path=labeled_path,
         label_min_area_mm2=label_min_area,
         mpp_fallback=mpp_fallback,
+        include_regions=include_regions,
     )
     out["path"] = os.path.abspath(path)
     return out
@@ -346,7 +347,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.jobs and args.jobs > 1 and len(todo) > 1:
         with ProcessPoolExecutor(max_workers=args.jobs) as ex:
             futs = {
-                ex.submit(_process_slide, p, config, tp, args.label_min_area, args.mpp): p
+                ex.submit(_process_slide, p, config, tp, args.label_min_area, args.mpp, args.json): p
                 for (p, tp) in todo
             }
             for fut in as_completed(futs):
@@ -358,7 +359,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         for (p, tp) in todo:
             try:
-                _report(p, out=_process_slide(p, config, tp, args.label_min_area, args.mpp))
+                _report(p, out=_process_slide(p, config, tp, args.label_min_area, args.mpp, args.json))
             except Exception as e:  # noqa: BLE001
                 _report(p, err=str(e))
 
