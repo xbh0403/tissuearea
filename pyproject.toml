@@ -29,7 +29,7 @@ dependencies = [
     "numpy>=1.21",
     "opencv-python-headless>=4.5",
     "openslide-python>=1.2",
-    "scikit-image>=0.19",
+    "scikit-image>=0.26",
     "pillow>=8.0",
     "tqdm>=4.0",
 ]

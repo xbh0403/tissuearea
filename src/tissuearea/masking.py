@@ -258,6 +258,9 @@ def combine_masks(
 # ---------------------------------------------------------------------------
 # Morphology
 # ---------------------------------------------------------------------------
+# scikit-image >= 0.26 uses ``max_size`` (removes objects/holes of size <=
+# max_size) in place of the old ``min_size``/``area_threshold`` (which removed
+# size < threshold). So ``max_size = threshold - 1`` reproduces the prior result.
 def remove_small_objects(
     mask: np.ndarray,
     min_size: Optional[float] = None,
@@ -281,7 +284,9 @@ def remove_small_objects(
     else:
         min_size = max(1, int(min_size))
 
-    cleaned_mask = morphology.remove_small_objects(mask, min_size=min_size, connectivity=connectivity)
+    cleaned_mask = morphology.remove_small_objects(
+        mask, max_size=min_size - 1, connectivity=connectivity
+    )
 
     if avoid_overmask and cleaned_mask.any():
         mask_percentage = (np.sum(cleaned_mask) / cleaned_mask.size) * 100
@@ -289,7 +294,7 @@ def remove_small_objects(
         while mask_percentage >= overmask_thresh and current_min_size > 1:
             current_min_size = max(1, current_min_size // 2)
             cleaned_mask = morphology.remove_small_objects(
-                mask, min_size=current_min_size, connectivity=connectivity
+                mask, max_size=current_min_size - 1, connectivity=connectivity
             )
             mask_percentage = (np.sum(cleaned_mask) / cleaned_mask.size) * 100
             if current_min_size == 1:
@@ -308,7 +313,9 @@ def fill_small_holes(
         mask = mask.astype(bool)
     if min_size is None:
         min_size = max(1, int(mask.size * 0.0001))
-    return morphology.remove_small_holes(mask, area_threshold=min_size, connectivity=connectivity)
+    return morphology.remove_small_holes(
+        mask, max_size=int(min_size) - 1, connectivity=connectivity
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -1,10 +1,13 @@
 """Tests for the vendored tissue-mask pipeline and primitives."""
 
+import warnings
+
 import numpy as np
 import pytest
+from skimage.measure import label
 
 from tissuearea import MaskingConfig, build_tissue_mask, visualize_mask
-from tissuearea.masking import filter_grays, otsu_mask
+from tissuearea.masking import fill_small_holes, filter_grays, otsu_mask, remove_small_objects
 
 
 def _synthetic_thumbnail(seed: int = 0) -> np.ndarray:
@@ -83,3 +86,35 @@ def test_visualize_mask_shape_mismatch_raises():
     thumb = _synthetic_thumbnail()
     with pytest.raises(ValueError):
         visualize_mask(thumb, np.zeros((10, 10), dtype=bool))
+
+
+# --- skimage-version-agnostic morphology semantics (min_size -> max_size) ---
+# These assert the threshold semantics directly, independent of which skimage
+# version supplies the primitive, so the 0.26 `max_size` translation is verified.
+
+def test_remove_small_objects_keeps_size_ge_min_size():
+    mask = np.zeros((10, 40), dtype=bool)
+    mask[1, 1:4] = True     # blob of 3 px
+    mask[4, 10:14] = True   # blob of 4 px
+    mask[7, 20:25] = True   # blob of 5 px
+    out = remove_small_objects(mask, min_size=4, avoid_overmask=False)
+    sizes = sorted(np.bincount(label(out).ravel())[1:].tolist())
+    assert sizes == [4, 5]  # size-3 blob removed; sizes >= 4 kept
+
+
+def test_fill_small_holes_fills_size_lt_min_size():
+    mask = np.ones((12, 12), dtype=bool)
+    mask[2, 2:5] = False    # interior hole of 3 px
+    mask[6, 2:7] = False    # interior hole of 5 px
+    out = fill_small_holes(mask, min_size=4)
+    # hole of 3 (< 4) filled; hole of 5 kept -> 5 background pixels remain
+    assert int((~out).sum()) == 5
+
+
+def test_build_tissue_mask_emits_no_deprecation_warning():
+    thumb = _synthetic_thumbnail()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        warnings.simplefilter("error", DeprecationWarning)
+        # filter_grays=False keeps more tissue so the morphology steps actually run
+        build_tissue_mask(thumb, MaskingConfig(filter_grays=False))
