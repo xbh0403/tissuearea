@@ -92,7 +92,7 @@ progress bar tracks the batch. Everything lands in `-o` (default
 | `-i, --input` (or positional) | *(required)* | a slide file **or** a folder of slides |
 | `-o, --output` | `./tissuearea_output` | output dir (`area.csv`, `area.json`, `thumbnails/`, `run_config.txt`) |
 | `-t, --type` | `ff` | tissue prep: `ff` fresh-frozen (gray filter **off**) or `ffpe` (**on**) |
-| `-j, --jobs N` | `1` | process N slides in parallel |
+| `-j, --jobs N` | `8` | process N slides in parallel (use `1` for serial) |
 | `--resume` | off | skip slides already in `area.csv` (continue a run) |
 | `--no-recursive` | off | don't search subfolders |
 | `--skip-png` | off | don't save labelled thumbnails (saved by default) |

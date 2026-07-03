@@ -106,8 +106,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="When -i is a folder, do NOT search subfolders (default: recursive).",
     )
     p.add_argument(
-        "--jobs", "-j", type=int, default=1, metavar="N",
-        help="Process N slides in parallel (default: 1).",
+        "--jobs", "-j", type=int, default=8, metavar="N",
+        help="Process N slides in parallel (default: 8; use 1 for serial).",
     )
     p.add_argument(
         "--resume", action="store_true",

@@ -14,7 +14,7 @@ def test_parser_defaults():
     assert args.no_recursive is False     # recursive by default
     assert args.no_json is False          # area.json written by default
     assert args.resume is False
-    assert args.jobs == 1
+    assert args.jobs == 8
     assert args.mode == "largest_cc"
 
 
