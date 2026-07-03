@@ -7,7 +7,7 @@ one output directory:
     thumbnails/       labelled thumbnails (unless --skip-png)
     run_config.txt    the resolved run configuration (also printed at start)
     failures.csv      any slides that failed (only if some did)
-    area.json         full per-slide records (only with --json)
+    area.json         full per-slide records incl. per-region list (default; --no-json to skip)
 """
 
 import argparse
@@ -133,8 +133,9 @@ def _build_parser() -> argparse.ArgumentParser:
         "--label-min-area", type=float, default=0.0, metavar="MM2",
         help="In thumbnails, only label regions >= this many mm² (default 0 = all).",
     )
-    p.add_argument("--json", action="store_true",
-                   help="Also write area.json (full per-slide records).")
+    p.add_argument("--no-json", action="store_true",
+                   help="Do NOT write area.json (per-slide records incl. the per-region "
+                        "list). Written by default.")
     p.add_argument("--quiet", action="store_true",
                    help="Minimal output (no banner, no progress bar).")
     p.add_argument("--version", action="version", version=f"tissuearea {__version__}")
@@ -244,6 +245,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
 
     recursive = not args.no_recursive
+    write_json = not args.no_json
     try:
         slides, _kind = _resolve_inputs(input_path, recursive=recursive)
     except FileNotFoundError as e:
@@ -347,7 +349,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.jobs and args.jobs > 1 and len(todo) > 1:
         with ProcessPoolExecutor(max_workers=args.jobs) as ex:
             futs = {
-                ex.submit(_process_slide, p, config, tp, args.label_min_area, args.mpp, args.json): p
+                ex.submit(_process_slide, p, config, tp, args.label_min_area, args.mpp, write_json): p
                 for (p, tp) in todo
             }
             for fut in as_completed(futs):
@@ -359,7 +361,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         for (p, tp) in todo:
             try:
-                _report(p, out=_process_slide(p, config, tp, args.label_min_area, args.mpp, args.json))
+                _report(p, out=_process_slide(p, config, tp, args.label_min_area, args.mpp, write_json))
             except Exception as e:  # noqa: BLE001
                 _report(p, err=str(e))
 
@@ -369,7 +371,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if fail_state["f"]:
         fail_state["f"].close()
 
-    if args.json:
+    if write_json:
         with open(os.path.join(out_dir, "area.json"), "w") as f:
             json.dump(results, f, indent=2)
 

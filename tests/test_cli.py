@@ -12,6 +12,7 @@ def test_parser_defaults():
     assert args.tissue_type == "ff"       # fresh-frozen (gray filter off) is default
     assert args.skip_png is False         # thumbnails saved by default
     assert args.no_recursive is False     # recursive by default
+    assert args.no_json is False          # area.json written by default
     assert args.resume is False
     assert args.jobs == 1
     assert args.mode == "largest_cc"
@@ -20,7 +21,7 @@ def test_parser_defaults():
 def test_parser_input_flag_and_flags():
     args = _build_parser().parse_args(
         ["-i", "d/", "-o", "out", "-t", "ffpe", "--skip-png", "--no-recursive",
-         "--jobs", "4", "--resume", "--mpp", "0.5", "--mode", "whole"]
+         "--jobs", "4", "--resume", "--mpp", "0.5", "--mode", "whole", "--no-json"]
     )
     assert args.input_flag == "d/"
     assert args.output == "out"
@@ -31,6 +32,7 @@ def test_parser_input_flag_and_flags():
     assert args.resume is True
     assert args.mpp == 0.5
     assert args.mode == "whole"
+    assert args.no_json is True
 
 
 def test_parser_rejects_unknown_type():

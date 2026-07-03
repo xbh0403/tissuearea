@@ -90,7 +90,7 @@ progress bar tracks the batch. Everything lands in `-o` (default
 | flag | default | meaning |
 |---|---|---|
 | `-i, --input` (or positional) | *(required)* | a slide file **or** a folder of slides |
-| `-o, --output` | `./tissuearea_output` | output dir (`area.csv`, `thumbnails/`, `run_config.txt`) |
+| `-o, --output` | `./tissuearea_output` | output dir (`area.csv`, `area.json`, `thumbnails/`, `run_config.txt`) |
 | `-t, --type` | `ff` | tissue prep: `ff` fresh-frozen (gray filter **off**) or `ffpe` (**on**) |
 | `-j, --jobs N` | `1` | process N slides in parallel |
 | `--resume` | off | skip slides already in `area.csv` (continue a run) |
@@ -100,7 +100,7 @@ progress bar tracks the batch. Everything lands in `-o` (default
 | `--mode` | `largest_cc` | which area becomes the headline `tissue_area_mm2` |
 | `--scale` | `32` | thumbnail downsampling factor |
 | `--label-min-area MM2` | `0` | only label regions ≥ this size in thumbnails |
-| `--json` | off | also write `area.json` (full records) |
+| `--no-json` | off | don't write `area.json` (written by default) |
 | `--quiet` | off | minimal output (no banner / progress bar) |
 
 Frozen tissue is often near-neutral, so the `ff` preset turns the gray filter off
@@ -130,9 +130,10 @@ If you just want one number per slide, read **`tissue_area_mm2`**.
 its area (`#1` = largest), plus a header (region count, total, largest).
 `--label-min-area` suppresses text on tiny specks.
 
-**`area.json`** (`--json`) — full per-slide records, each with a **`regions`**
-array that mirrors the thumbnail `#N` labels: `rank`, `area_mm2`, `centroid_xy`,
-and `bbox` per section. So every area you see drawn is saved and locatable.
+**`area.json`** (written by default; `--no-json` to skip) — full per-slide
+records, each with a **`regions`** array that mirrors the thumbnail `#N` labels:
+`rank`, `area_mm2`, `centroid_xy`, and `bbox` per section. So every area you see
+drawn is saved and locatable.
 
 ### Python
 
