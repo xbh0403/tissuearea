@@ -182,7 +182,7 @@ On a validation set of 307 fresh-frozen colorectal slides (reference =
 single-section areas), the best agreement came from **disabling the gray filter
 and taking the largest connected component**:
 
-| Config (area mode) | Spearman | median |%err| | within ±25% |
+| Config (area mode) | Spearman | median \|%err\| | within ±25% |
 |---|---|---|---|
 | `filter_grays=False`, `largest_cc` | **0.90** | **9.9%** | **70.7%** |
 | `filter_grays=False`, `whole` | 0.84 | 14.5% | — |
