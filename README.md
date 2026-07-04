@@ -34,13 +34,13 @@ Connected components use 8-connectivity. MPP resolution order:
 
 ## Install
 
-> The repo is **private** — cloning/installing needs GitHub access (an SSH key,
-> or an HTTPS token).
+The repo is public, so cloning/installing over **HTTPS needs no GitHub account
+or keys**.
 
 ### Quickest: one command
 
 ```bash
-git clone git@github.com:xbh0403/tissuearea.git
+git clone https://github.com/xbh0403/tissuearea.git
 cd tissuearea
 conda env create -f environment.yml   # makes env 'tissuearea' with everything
 conda activate tissuearea
@@ -58,14 +58,15 @@ pip install openslide-bin
 #  conda install -c conda-forge openslide)
 
 # install the package (from a clone):
-git clone git@github.com:xbh0403/tissuearea.git && cd tissuearea
+git clone https://github.com/xbh0403/tissuearea.git && cd tissuearea
 pip install -e .          # add ".[dev]" for the test suite
 # — or without cloning —
-pip install "git+ssh://git@github.com/xbh0403/tissuearea.git"
+pip install "git+https://github.com/xbh0403/tissuearea.git"
 ```
 
 `openslide-python`, `tqdm`, and the other dependencies are pulled in
 automatically; `openslide-bin` supplies the native OpenSlide library they bind to.
+(Contributors who push can use the SSH URL `git@github.com:xbh0403/tissuearea.git`.)
 
 ## Usage
 
