@@ -24,13 +24,19 @@ __all__ = ["draw_region_labels"]
 RGB = Tuple[int, int, int]
 
 # Sans-serif candidates, most "scientific" first. macOS Helvetica/Arial, then
-# Linux DejaVu/Liberation; bare names let fontconfig resolve. Resolved once.
+# Windows Arial/Segoe UI, then Linux DejaVu/Liberation; bare names let the OS
+# font lookup resolve. Windows filename lookup is case-sensitive, so list the
+# lowercase names its font dir actually uses. Resolved once.
 _FONT_CANDIDATES = (
     "/System/Library/Fonts/Helvetica.ttc",
     "/System/Library/Fonts/Supplemental/Arial.ttf",
     "/Library/Fonts/Arial.ttf",
     "Arial.ttf",
     "Helvetica.ttf",
+    r"C:\Windows\Fonts\arial.ttf",
+    r"C:\Windows\Fonts\segoeui.ttf",
+    "arial.ttf",
+    "segoeui.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
@@ -40,25 +46,37 @@ _resolved_font_path = None
 _font_lookup_done = False
 
 
+def _has_glyph(font, ch: str) -> bool:
+    """True if ``font`` renders a visible glyph for ``ch`` (not a blank/tofu)."""
+    try:
+        return font.getmask(ch).getbbox() is not None
+    except Exception:
+        return False
+
+
 def _default_font_path() -> Optional[str]:
-    """Find a sans-serif TrueType font once, caching the result."""
+    """Find a sans-serif TrueType font once, caching the result.
+
+    A candidate must render the superscript-two glyph (used by the ``mm²``
+    labels); otherwise it's skipped so labels never render as tofu boxes.
+    """
     global _resolved_font_path, _font_lookup_done
     if _font_lookup_done:
         return _resolved_font_path
     _font_lookup_done = True
     for cand in _FONT_CANDIDATES:
         try:
-            ImageFont.truetype(cand, 12)
-            _resolved_font_path = cand
-            return cand
+            if _has_glyph(ImageFont.truetype(cand, 12), "²"):
+                _resolved_font_path = cand
+                return cand
         except Exception:
             continue
-    try:  # matplotlib bundles DejaVu Sans
+    try:  # matplotlib bundles DejaVu Sans (which has the ² glyph)
         import matplotlib.font_manager as fm
 
         path = fm.findfont("DejaVu Sans")
-        ImageFont.truetype(path, 12)
-        _resolved_font_path = path
+        if _has_glyph(ImageFont.truetype(path, 12), "²"):
+            _resolved_font_path = path
     except Exception:
         _resolved_font_path = None
     return _resolved_font_path
@@ -169,19 +187,23 @@ def draw_region_labels(
     font = _load_font(font_size, font_path)
     header_font = _load_font(round(font_size * 1.12), font_path)
 
+    # Degrade "mm²" -> "mm2" if the chosen font lacks the superscript-two glyph,
+    # so labels never render as a tofu box (e.g. Pillow's bundled default font).
+    unit = "mm²" if _has_glyph(font, "²") else "mm2"
+
     for r in regions:
         if r["area_mm2"] < min_area_mm2:
             continue
         cx, cy = r["centroid_xy"]
-        text = f"#{r['rank']}: {r['area_mm2']:.1f} mm²" if show_index else f"{r['area_mm2']:.1f} mm²"
+        text = f"#{r['rank']}: {r['area_mm2']:.1f} {unit}" if show_index else f"{r['area_mm2']:.1f} {unit}"
         _draw_label(odraw, text, (cx, cy), font, text_color, "center", (w_px, h_px), pad, radius)
 
     if show_header:
         if regions:
             total = sum(r["area_mm2"] for r in regions)
             header = (
-                f"{len(regions)} regions   total {total:.1f} mm²   "
-                f"largest {regions[0]['area_mm2']:.1f} mm²"
+                f"{len(regions)} regions   total {total:.1f} {unit}   "
+                f"largest {regions[0]['area_mm2']:.1f} {unit}"
             )
         else:
             header = "no tissue detected"

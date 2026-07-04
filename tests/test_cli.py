@@ -1,5 +1,7 @@
 """Smoke tests for the CLI argument handling (no real slide needed)."""
 
+import os
+
 import pytest
 
 from tissuearea.cli import _DEFAULT_OUTPUT, _CSV_FIELDS, _build_parser, _resolve_inputs, _thumb_name, main
@@ -70,7 +72,7 @@ def test_resolve_inputs_folder_is_recursive(tmp_path):
     (tmp_path / "notes.txt").write_bytes(b"")  # ignored (not a slide ext)
     slides, kind = _resolve_inputs(str(tmp_path), recursive=True)
     assert kind == "folder"
-    names = sorted(s.rsplit("/", 1)[-1] for s in slides)
+    names = sorted(os.path.basename(s) for s in slides)  # native sep: win \, posix /
     assert names == ["nested.ndpi", "top.svs"]   # subfolder slide found
 
 
