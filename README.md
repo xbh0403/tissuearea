@@ -34,8 +34,8 @@ Connected components use 8-connectivity. MPP resolution order:
 
 ## Install
 
-The repo is public, so cloning/installing over **HTTPS needs no GitHub account
-or keys**.
+Requires **Python ≥ 3.11** (the floor comes from scikit-image 0.26). The repo is
+public, so cloning/installing over **HTTPS needs no GitHub account or keys**.
 
 ### Quickest: one command
 

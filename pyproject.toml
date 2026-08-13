@@ -7,7 +7,9 @@ name = "tissuearea"
 version = "0.1.0"
 description = "Physical tissue-area estimation (mm²) from whole-slide-image tissue masks and MPP metadata."
 readme = "README.md"
-requires-python = ">=3.9"
+# >=3.11 is set by scikit-image 0.26, whose `max_size` morphology API masking.py
+# depends on; 3.10 cannot resolve the dependency set at all.
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "xbh0403", email = "xbh0403@gmail.com" }]
 keywords = [
@@ -19,6 +21,9 @@ keywords = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Image Processing",
