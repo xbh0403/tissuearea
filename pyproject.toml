@@ -10,7 +10,8 @@ readme = "README.md"
 # >=3.11 is set by scikit-image 0.26, whose `max_size` morphology API masking.py
 # depends on; 3.10 cannot resolve the dependency set at all.
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "xbh0403", email = "xbh0403@gmail.com" }]
 keywords = [
     "digital-pathology",
@@ -24,7 +25,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Image Processing",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
@@ -34,6 +34,11 @@ dependencies = [
     "numpy>=1.21",
     "opencv-python-headless>=4.5",
     "openslide-python>=1.2",
+    # openslide-python is only a binding; without a native OpenSlide library on
+    # the system `import tissuearea` fails outright. Shipping openslide-bin is
+    # what makes a bare `pip install tissuearea` work. It has no wheel for
+    # glibc < 2.28 or Windows ARM — those platforms should use the conda path.
+    "openslide-bin>=4.0",
     "scikit-image>=0.26",
     "pillow>=8.0",
     "tqdm>=4.0",
@@ -48,6 +53,7 @@ tissuearea = "tissuearea.cli:main"
 [project.urls]
 Homepage = "https://github.com/xbh0403/tissuearea"
 Repository = "https://github.com/xbh0403/tissuearea"
+Issues = "https://github.com/xbh0403/tissuearea/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tissuearea"]
