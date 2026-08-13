@@ -34,39 +34,47 @@ Connected components use 8-connectivity. MPP resolution order:
 
 ## Install
 
-Requires **Python ≥ 3.11** (the floor comes from scikit-image 0.26). The repo is
-public, so cloning/installing over **HTTPS needs no GitHub account or keys**.
-
-### Quickest: one command
-
 ```bash
-git clone https://github.com/xbh0403/tissuearea.git
-cd tissuearea
-conda env create -f environment.yml   # makes env 'tissuearea' with everything
-conda activate tissuearea
+pip install tissuearea
 ```
 
-### Or step by step
+That's the whole thing — the native OpenSlide library comes with it
+(`openslide-bin`), so there's nothing to install separately. Requires **Python ≥
+3.11** (the floor comes from scikit-image 0.26).
+
+<details>
+<summary>If <code>pip install</code> can't find an OpenSlide wheel for your platform</summary>
+
+`openslide-bin` ships wheels for Linux x86-64/aarch64 (glibc ≥ 2.28), macOS 11+,
+and Windows x86-64. On older Linux (RHEL/CentOS 7) or Windows ARM there is no
+wheel, pip will try to build OpenSlide from source, and it will likely fail. Use
+conda there:
 
 ```bash
 conda create -n tissuearea python=3.12 -y
 conda activate tissuearea
-
-# OpenSlide native library via pip — no system/conda install needed:
-pip install openslide-bin
-# (fallback if there's no wheel for your platform:
-#  conda install -c conda-forge openslide)
-
-# install the package (from a clone):
-git clone https://github.com/xbh0403/tissuearea.git && cd tissuearea
-pip install -e .          # add ".[dev]" for the test suite
-# — or without cloning —
-pip install "git+https://github.com/xbh0403/tissuearea.git"
+conda install -c conda-forge openslide -y     # native library
+pip install --no-deps tissuearea              # skip the openslide-bin wheel
+pip install numpy opencv-python-headless openslide-python scikit-image pillow tqdm
 ```
 
-`openslide-python`, `tqdm`, and the other dependencies are pulled in
-automatically; `openslide-bin` supplies the native OpenSlide library they bind to.
-(Contributors who push can use the SSH URL `git@github.com:xbh0403/tissuearea.git`.)
+Or use a system/module OpenSlide the same way.
+
+</details>
+
+### From source
+
+```bash
+git clone https://github.com/xbh0403/tissuearea.git
+cd tissuearea
+pip install -e .          # add ".[dev]" for the test suite
+```
+
+Or a one-command conda environment: `conda env create -f environment.yml && conda
+activate tissuearea`. Installing straight from git also works:
+`pip install "git+https://github.com/xbh0403/tissuearea.git"`. The repo is public,
+so HTTPS needs no GitHub account or keys; contributors who push can use the SSH
+URL `git@github.com:xbh0403/tissuearea.git`.
 
 ## Usage
 
