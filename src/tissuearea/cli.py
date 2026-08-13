@@ -221,6 +221,55 @@ def _config_report(args, slides, config, save_png, recursive, mpp, max_list=None
     return "\n".join(lines)
 
 
+def _plan_work(slides, done_paths, thumb_dir, save_png):
+    """Split ``slides`` into ``(todo, n_skipped)``, assigning thumbnail names.
+
+    A name is reserved for every slide, including the ones ``--resume`` skips:
+    otherwise a later slide sharing a stem would claim the plain
+    ``{stem}_regions.png`` and overwrite the finished slide's thumbnail. Doing it
+    this way also makes the names identical to those an uninterrupted run picks.
+    """
+    used_names: set = set()
+    todo: List[Tuple[str, Optional[str]]] = []
+    skipped = 0
+    for p in slides:
+        name = _thumb_name(p, used_names) if save_png else None
+        if os.path.abspath(p) in done_paths:
+            skipped += 1
+            continue
+        todo.append((p, os.path.join(thumb_dir, name) if save_png else None))
+    return todo, skipped
+
+
+def _write_json_records(json_path, results, merge):
+    """Write the per-slide JSON records, keeping earlier ones when resuming.
+
+    ``results`` holds only the slides *this* run processed, so a resumed run
+    reads back the records written before the interruption and merges them
+    (keyed by absolute path, this run's copy winning) rather than truncating
+    area.json to the tail of the batch — area.csv is appended, and the two must
+    agree.
+    """
+    records = results
+    if merge and os.path.exists(json_path):
+        prior = None
+        try:
+            with open(json_path) as f:
+                prior = json.load(f)
+        except (OSError, ValueError) as e:
+            print(f"WARNING: cannot read {json_path} to merge ({e});", file=sys.stderr)
+        if isinstance(prior, list):
+            by_path = {r["path"]: r for r in prior if isinstance(r, dict) and "path" in r}
+            by_path.update({r["path"]: r for r in results if "path" in r})
+            records = list(by_path.values())
+        elif prior is not None:
+            print(f"WARNING: {json_path} is not a list of records;", file=sys.stderr)
+        if records is results:
+            print("         replacing it with this run's slides only.", file=sys.stderr)
+    with open(json_path, "w") as f:
+        json.dump(records, f, indent=2)
+
+
 def _process_slide(path, config, labeled_path, label_min_area, mpp_fallback, include_regions=False):
     """Worker (module-level so it is picklable for --jobs)."""
     out = tissue_area_for_slide(
@@ -274,15 +323,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if row.get("path"):
                     done_paths.add(os.path.abspath(row["path"]))
 
-    used_names: set = set()
-    todo: List[Tuple[str, Optional[str]]] = []
-    skipped = 0
-    for p in slides:
-        if os.path.abspath(p) in done_paths:
-            skipped += 1
-            continue
-        tp = os.path.join(thumb_dir, _thumb_name(p, used_names)) if save_png else None
-        todo.append((p, tp))
+    todo, skipped = _plan_work(slides, done_paths, thumb_dir, save_png)
 
     # Config banner: print (capped) + persist full copy to run_config.txt.
     report_full = _config_report(args, slides, config, save_png, recursive, args.mpp)
@@ -372,8 +413,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         fail_state["f"].close()
 
     if write_json:
-        with open(os.path.join(out_dir, "area.json"), "w") as f:
-            json.dump(results, f, indent=2)
+        _write_json_records(
+            os.path.join(out_dir, "area.json"), results, merge=args.resume
+        )
 
     # Final summary.
     print("-" * 48)

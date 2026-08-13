@@ -109,9 +109,11 @@ Frozen tissue is often near-neutral, so the `ff` preset turns the gray filter of
 is well-stained, so `ffpe` keeps it on. Pick the one matching your cohort.
 
 A crash-safe batch: `area.csv` is streamed row-by-row, so `--resume` picks up
-where an interrupted run stopped. Any slide that fails is recorded in
-`<output>/failures.csv` and the process exits non-zero (1 = some failed, 2 = none
-succeeded), so pipelines can tell.
+where an interrupted run stopped, and both `area.csv` and `area.json` end up
+holding the whole cohort — not just the slides the final run touched. Labelled
+thumbnails keep the same filenames they would get in one uninterrupted run. Any
+slide that fails is recorded in `<output>/failures.csv` and the process exits
+non-zero (1 = some failed, 2 = none succeeded), so pipelines can tell.
 
 **`area.csv`** — one row per slide:
 
